@@ -105,5 +105,6 @@ int main(void)
 
 	printf("Value: %d\n", correct_value_with_key);
 
+	delete obfuscatedClass;
 	return 0;
 }
