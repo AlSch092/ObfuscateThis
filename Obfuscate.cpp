@@ -10,20 +10,20 @@
 namespace Obfuscator
 {
 	template <class T>
-	void obfuscate(T& data)
+	__forceinline void obfuscate(T& data)
 	{
 		data = (data ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
 	}
 
 	template <class T>
-	T deobfuscate(T& data)
+	__forceinline T deobfuscate(T& data)
 	{
 		T deobfuscated_val = (data - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
 		return deobfuscated_val;
 	}
 
 	template <class T>
-	void obfuscate_with_key(T& data, int key)
+	__forceinline void obfuscate_with_key(T& data, int key)
 	{
 		std::hash<int> hasher;
 		size_t hash_value = hasher(key);
@@ -36,7 +36,7 @@ namespace Obfuscator
 	}
 
 	template <class T>
-	T deobfuscate_with_key(T& data, int key)
+	__forceinline T deobfuscate_with_key(T& data, int key)
 	{
 		std::hash<int> hasher;
 		size_t hash_value = hasher(key);
@@ -58,25 +58,25 @@ private:
 
 public:
 	
-	T GetData()
+	__forceinline T GetData()
 	{ 
 		T data_deobfs = Obfuscator::deobfuscate(someData);
 		return data_deobfs; 
 	}
 	
-	void SetData(T value) 
+	__forceinline void SetData(T value)
 	{ 
 		this->someData = value;  
 		Obfuscator::obfuscate(this->someData);
 	}
 
-	T GetData(int key)
+	__forceinline T GetData(int key)
 	{
 		T data_deobfs = Obfuscator::deobfuscate_with_key(someData, key);
 		return data_deobfs;
 	}
 
-	void SetData(T value, int key)
+	__forceinline void SetData(T value, int key)
 	{
 		this->someData = value;  
 		Obfuscator::obfuscate_with_key(this->someData, key);
