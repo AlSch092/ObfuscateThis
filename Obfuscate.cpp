@@ -48,6 +48,38 @@ namespace Obfuscator
 		T deobfuscated_val = (data - random_number) ^ OBFUSCATE_SEED;
 		return deobfuscated_val;
 	}
+
+	__forceinline void obfuscate_string(std::string& input)
+	{
+		for (int i = 0; i < input.length(); i++)
+		{
+			if (i % 2 == 0) //destroys chances of someone brute forcing XOR key - alternating digits having a different constant operation
+				input[i] = (input[i] ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
+			else
+				input[i] = (input[i] ^ OBFUSCATE_SEED) - CONST_OPERATION_SEED;
+		}
+	}
+
+	__forceinline std::string get_deobfuscated_string(std::string& input)
+	{
+		std::string deobfs;
+
+		for (int i = 0; i < input.length(); i++)
+		{
+			if (i % 2 == 0)
+			{
+				char deobfs_ch = (input[i] - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
+				deobfs.push_back(deobfs_ch);
+			}
+			else
+			{
+				char deobfs_ch = (input[i] + CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
+				deobfs.push_back(deobfs_ch);
+			}
+		}
+
+		return deobfs;
+	}
 }
 
 template<class T>
@@ -105,6 +137,14 @@ int main(void)
 
 	printf("Value: %d\n", correct_value_with_key);
 
+	std::string str_to_obfuscate = "Secret Message"; //string obfuscation example
+
+	Obfuscator::obfuscate_string(str_to_obfuscate);
+
+	printf("Obfuscated string (1): %s\n", str_to_obfuscate.c_str());
+
+	printf("Deobfuscated string (1): %s\n", Obfuscator::get_deobfuscated_string(str_to_obfuscate).c_str());
+	
 	delete obfuscatedClass;
 	return 0;
 }
