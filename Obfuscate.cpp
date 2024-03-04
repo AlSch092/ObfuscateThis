@@ -3,9 +3,11 @@
 #define OBFUSCATE_SEED 174440041
 #define CONST_OPERATION_SEED 76543
 
-#include <Windows.h>
-#include <stdio.h>
 #include <random>
+#include <string>
+#include <iostream>
+
+using namespace std;
 
 namespace Obfuscator
 {
@@ -18,18 +20,17 @@ namespace Obfuscator
 	template <class T>
 	__forceinline T deobfuscate(T& data)
 	{
-		T deobfuscated_val = (data - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
-		return deobfuscated_val;
+		return (data - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
 	}
 
 	template <class T>
 	__forceinline void obfuscate_with_key(T& data, int key)
 	{
-		std::hash<int> hasher;
+		hash<int> hasher;
 		size_t hash_value = hasher(key);
-		std::mt19937 rng(hash_value);
+		mt19937 rng(hash_value);
 
-		std::uniform_int_distribution<int> distribution(1, 2147483647);
+		uniform_int_distribution<int> distribution(1, INT_MAX);
 		int random_number = distribution(rng);
 
 		data = (data ^ OBFUSCATE_SEED) + random_number;
@@ -38,33 +39,40 @@ namespace Obfuscator
 	template <class T>
 	__forceinline T deobfuscate_with_key(T& data, int key)
 	{
-		std::hash<int> hasher;
+		hash<int> hasher;
 		size_t hash_value = hasher(key);
-		std::mt19937 rng(hash_value);
+		mt19937 rng(hash_value);
 
-		std::uniform_int_distribution<int> distribution(1, 2147483647);
+		uniform_int_distribution<int> distribution(1, INT_MAX);
 		int random_number = distribution(rng);
 
-		T deobfuscated_val = (data - random_number) ^ OBFUSCATE_SEED;
-		return deobfuscated_val;
+		return (data - random_number) ^ OBFUSCATE_SEED;
 	}
 
-	__forceinline void obfuscate_string(std::string& input)
+	__forceinline void obfuscate_string(char* input, int maxStrLen)
 	{
-		for (int i = 0; i < input.length(); i++)
+		if (input == NULL) return;
+
+		int len = strnlen_s(input, maxStrLen);
+
+		for (int i = 0; i < len; i++)
 		{
-			if (i % 2 == 0) //destroys chances of someone brute forcing XOR key - alternating digits having a different constant operation
+			if (i % 2 == 0) //destroys chances of someone brute forcing XOR key - alternating digits having a different operation
 				input[i] = (input[i] ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
 			else
 				input[i] = (input[i] ^ OBFUSCATE_SEED) - CONST_OPERATION_SEED;
 		}
 	}
 
-	__forceinline std::string get_deobfuscated_string(std::string& input)
+	__forceinline string get_deobfuscated_string(char* input, int maxStrLen)
 	{
-		std::string deobfs;
+		if (input == NULL) return (string)NULL;
 
-		for (int i = 0; i < input.length(); i++)
+		int len = strnlen_s(input, maxStrLen);
+
+		string deobfs;
+
+		for (int i = 0; i < len; i++)
 		{
 			if (i % 2 == 0)
 			{
@@ -90,10 +98,14 @@ private:
 
 public:
 	
+	ProtectedData(T val)
+	{
+		SetData(val);
+	}
+
 	__forceinline T GetData()
 	{ 
-		T data_deobfs = Obfuscator::deobfuscate(someData);
-		return data_deobfs; 
+		return Obfuscator::deobfuscate(someData);
 	}
 	
 	__forceinline void SetData(T value)
@@ -104,8 +116,7 @@ public:
 
 	__forceinline T GetData(int key)
 	{
-		T data_deobfs = Obfuscator::deobfuscate_with_key(someData, key);
-		return data_deobfs;
+		return Obfuscator::deobfuscate_with_key(someData, key);
 	}
 
 	__forceinline void SetData(T value, int key)
@@ -117,34 +128,37 @@ public:
 
 int main(void)
 {
-	//this example presents two different obfuscation tactics: regular XOR + static operation, and key-based. more will be added soon!
-	ProtectedData<int>* obfuscatedClass = new ProtectedData<int>();
+	int OriginalValue = 5;
+	int key = 12345;
+
+	//this example presents two different obfuscation tactics: regular XOR + static operation, and key-based. more will be added over time
+	ProtectedData<int>* obfuscatedClass = new ProtectedData<int>(OriginalValue);
+	int value = obfuscatedClass->GetData(); //returns original value of 5, now we can try adding a randomized key
+	cout << "Original value to obfuscate: " << value << endl;
+
+	obfuscatedClass->SetData(OriginalValue, key); //key-based approach - a deterministic value is generated based on a key and used in the obfuscation process
 	
-	//at the address of someData in ProtectedData class, the value at rest will never be what we set here for more than a few assembler instructions
-	obfuscatedClass->SetData(5); 	
+	int wrong_value = obfuscatedClass->GetData(2222); //wrong key (2222) gets a wrong value back
 	
-	int value = obfuscatedClass->GetData(); //not using key
+	cout << "GetData with key 2222 -> Value = " << wrong_value << endl;
 
-	printf("Value: %d\n", value);
+	int correct_value_with_key = obfuscatedClass->GetData(key); //get data back with correct key
 
-	obfuscatedClass->SetData(5, 12345); //key-based approach - a deterministic value is generated based on a key and used in the obfuscation process
-	
-	int wrong_value = obfuscatedClass->GetData(2222); //
-	
-	printf("Value: %d - using the wrong key will result in a value different than the original\n", wrong_value);
+	cout << "GetData with key " << key << " -> Value = " << correct_value_with_key << endl;
 
-	int correct_value_with_key = obfuscatedClass->GetData(12345);
+	char* str_to_obfuscate = new char[20] {0};
+	strcpy_s(str_to_obfuscate, 15, "Secret Message"); //this hardcoded string parameter will leave traces of the secret string, please see my project "HideStaticReferences" on how to remove string traces
 
-	printf("Value: %d\n", correct_value_with_key);
+	Obfuscator::obfuscate_string(str_to_obfuscate, 50);
 
-	std::string str_to_obfuscate = "Secret Message"; //string obfuscation example
+	cout << "Obfuscated string: " << str_to_obfuscate << endl;
 
-	Obfuscator::obfuscate_string(str_to_obfuscate);
+	string deobfs_str = Obfuscator::get_deobfuscated_string(str_to_obfuscate, 50);
 
-	printf("Obfuscated string (1): %s\n", str_to_obfuscate.c_str());
+	cout << "Deobfuscated string: " << deobfs_str << endl;
 
-	printf("Deobfuscated string (1): %s\n", Obfuscator::get_deobfuscated_string(str_to_obfuscate).c_str());
-	
 	delete obfuscatedClass;
+	delete[] str_to_obfuscate;
+
 	return 0;
 }
