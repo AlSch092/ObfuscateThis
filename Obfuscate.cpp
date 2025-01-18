@@ -13,17 +13,17 @@ template<typename T>
 class Obfuscator
 {
 public:
-	static void obfuscate(T& data) //static cannot be inline
+	static __forceinline void obfuscate(T& data) //static cannot be inline
 	{
 		data = (data ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
 	}
 
-	static T deobfuscate(T& data)
+	static __forceinline T deobfuscate(T& data)
 	{
 		return (data - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
 	}
 
-	static void obfuscate_with_key(T& data, int key)
+	static __forceinline void obfuscate_with_key(T& data, int key)
 	{
 		hash<int> hasher;
 		size_t hash_value = hasher(key);
@@ -35,7 +35,7 @@ public:
 		data = (data ^ OBFUSCATE_SEED) + random_number;
 	}
 
-	static T deobfuscate_with_key(T& data, int key)
+	static __forceinline T deobfuscate_with_key(T& data, int key)
 	{
 		hash<int> hasher;
 		size_t hash_value = hasher(key);
@@ -58,7 +58,7 @@ public:
 	static const uint8_t reserved_value = 0xFF; //reserved value to encode adjusted `0x00`, since we may run into 00's early in the string which terminate it early
 
 	//this is a 'safer' method which makes sure 00's don't show up early in the string and terminate it wrongly
-	static void obfuscate(string& data)
+	static __forceinline void obfuscate(string& data)
 	{
 		for (size_t i = 0; i < data.size(); i++)
 		{
@@ -77,7 +77,7 @@ public:
 		}
 	}
 
-	static string deobfuscate(const string& data)
+	static __forceinline  string deobfuscate(const string& data)
 	{
 		string deobfs_str;
 
@@ -98,7 +98,7 @@ public:
 		return deobfs_str;
 	}
 
-	static void obfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
+	static __forceinline void obfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
 	{
 		for (size_t i = 0; i < data.size(); i++)
 		{
@@ -117,7 +117,7 @@ public:
 		}
 	}
 
-	static string deobfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
+	static __forceinline string deobfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
 	{
 		string deobfs_str;
 
