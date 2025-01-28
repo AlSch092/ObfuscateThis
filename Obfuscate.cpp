@@ -13,7 +13,7 @@ template<typename T>
 class Obfuscator
 {
 public:
-	static __forceinline void obfuscate(T& data) //static cannot be inline
+	static __forceinline void obfuscate(T& data)
 	{
 		data = (data ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
 	}
