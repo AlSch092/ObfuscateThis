@@ -13,7 +13,7 @@ template<typename T>
 class Obfuscator
 {
 public:
-	static __forceinline void obfuscate(T& data)
+	static __forceinline void obfuscate(T& data) //static cannot be inline
 	{
 		data = (data ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
 	}
@@ -55,25 +55,20 @@ public:
 
 	static const uint8_t obfs_seed = 0xFE; //XOR key
 	static const uint8_t obfs_additive = 0x53; //extra key which is added or subtracted, to make XOR brute forcing unlikely
-	static const uint8_t reserved_value = 0xFF; //reserved value to encode adjusted `0x00`, since we may run into 00's early in the string which terminate it early
 
 	//this is a 'safer' method which makes sure 00's don't show up early in the string and terminate it wrongly
 	static __forceinline void obfuscate(string& data)
 	{
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			uint8_t transformed = (data[i] ^ Obfuscator<string>::obfs_seed) + Obfuscator<string>::obfs_additive;
+			uint8_t transformed = 0;
 
-			if (transformed == 0x00 || transformed == reserved_value) //encode original value explicitly
-			{	
-				data[i] = reserved_value;  //use reserved value to indicate special handling
-				data.insert(i + 1, 1, data[i] ^ 0xAA); //encode original value with a secondary transform
-				++i; //skip the inserted value
-			}
+			if(i % 2 == 0)  //alternate + or - based on even/odd index to stop simple XOR brute forcers
+				transformed = (data[i] ^ Obfuscator<string>::obfs_seed) + Obfuscator<string>::obfs_additive;
 			else
-			{
-				data[i] = transformed;
-			}
+				transformed = (data[i] ^ Obfuscator<string>::obfs_seed) - Obfuscator<string>::obfs_additive;
+
+			data[i] = transformed;		
 		}
 	}
 
@@ -83,16 +78,11 @@ public:
 
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			if (data[i] == reserved_value)
-			{			
-				uint8_t original = data[i + 1] ^ 0xAA; //decode explicitly encoded values
-				deobfs_str += original;
-				++i; //skip the next byte since it's part of the encoding
-			}
+			if(i % 2 == 0) //alternate + or - based on even/odd index to stop simple XOR brute forcers
+				deobfs_str += (data[i] - Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed; 
 			else
-			{		
-				deobfs_str += (data[i] - Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed; //Normal decoding
-			}
+				deobfs_str += (data[i] + Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed;
+			
 		}
 
 		return deobfs_str;
@@ -102,18 +92,14 @@ public:
 	{
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			uint8_t transformed = (data[i] ^ key) + key_addition;
+			uint8_t transformed = 0;
 
-			if (transformed == 0x00 || transformed == reserved_value) //encode original value explicitly
-			{
-				data[i] = reserved_value;  //use reserved value to indicate special handling
-				data.insert(i + 1, 1, data[i] ^ 0xAA); //encode original value with a secondary transform
-				++i; //skip the inserted value
-			}
+			if (i % 2 == 0) // //alternate + or - based on even/odd index to stop simple XOR brute forcers
+				transformed = (data[i] ^ key) + key_addition;
 			else
-			{
-				data[i] = transformed;
-			}
+				transformed = (data[i] ^ key) - key_addition;
+
+			data[i] = transformed;
 		}
 	}
 
@@ -123,16 +109,10 @@ public:
 
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			if (data[i] == reserved_value)
-			{
-				uint8_t original = data[i + 1] ^ 0xAA; //decode explicitly encoded values
-				deobfs_str += original;
-				++i; //skip the next byte since it's part of the encoding
-			}
+			if (i % 2 == 0) //alternate + or - based on even/odd index to stop simple XOR brute forcers
+				deobfs_str += (data[i] - key_addition) ^ key;
 			else
-			{
-				deobfs_str += (data[i] - key_addition) ^ key; //Normal decoding
-			}
+				deobfs_str += (data[i] + key_addition) ^ key;		
 		}
 
 		return deobfs_str;
@@ -209,11 +189,11 @@ int main(void)
 
 	string str_to_obfs_with_key = "a string large enough to show that no strange edge cases will come up, in particular we want to see if any 0x00 comes up which might falsely terminate the string at an earlier time.";
 
-	Obfuscator<string>::obfuscate_with_key(str_to_obfs_with_key, 0x12, 0x34);
+	Obfuscator<string>::obfuscate_with_key(str_to_obfs_with_key, 0x61, 0);
 
 	cout << "Obfuscated string (using keys 0x12, 0x34): " << str_to_obfs_with_key << endl;
 
-	string deobfs_str_with_key = Obfuscator<string>::deobfuscate_with_key(str_to_obfs_with_key, 0x12, 0x34);
+	string deobfs_str_with_key = Obfuscator<string>::deobfuscate_with_key(str_to_obfs_with_key, 0x61, 0);
 
 	cout << "Deobfuscated string (using keys 0x12, 0x34): " << deobfs_str_with_key << endl;
 
