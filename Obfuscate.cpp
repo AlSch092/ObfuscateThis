@@ -3,6 +3,9 @@
 #define OBFUSCATE_SEED 174440041
 #define CONST_OPERATION_SEED 76543
 
+#define ROTL(x, n, bits)  (((x) << (n)) | ((x) >> ((bits) - (n))))
+#define ROTR(x, n, bits)  (((x) >> (n)) | ((x) << ((bits) - (n))))
+
 #include <random>
 #include <string>
 #include <iostream>
@@ -15,36 +18,55 @@ class Obfuscator
 public:
 	static __forceinline void obfuscate(T& data)
 	{
-		data = (data ^ OBFUSCATE_SEED) + CONST_OPERATION_SEED;
+		constexpr int bit_width = sizeof(T) * 8;
+		constexpr T ROT_KEY = (OBFUSCATE_SEED >> 3) ^ 0xb5;
+
+		data = ROTL(data, 3, bit_width) ^ OBFUSCATE_SEED;
+		data = (data + CONST_OPERATION_SEED) ^ ROT_KEY;
 	}
 
-	static __forceinline T deobfuscate(T& data)
+	static __forceinline T deobfuscate(const T data)
 	{
-		return (data - CONST_OPERATION_SEED) ^ OBFUSCATE_SEED;
+		constexpr int bit_width = sizeof(T) * 8;
+		constexpr T ROT_KEY = (OBFUSCATE_SEED >> 3) ^ 0xb5;
+
+		T deobfs_data = (data ^ ROT_KEY) - CONST_OPERATION_SEED;    
+		deobfs_data = ROTR(deobfs_data ^ OBFUSCATE_SEED, 3, bit_width);
+		return deobfs_data;
 	}
 
-	static __forceinline void obfuscate_with_key(T& data, int key)
-	{
-		hash<int> hasher;
-		size_t hash_value = hasher(key);
-		mt19937 rng(hash_value);
-
-		uniform_int_distribution<int> distribution(1, INT_MAX);
-		int random_number = distribution(rng);
-
-		data = (data ^ OBFUSCATE_SEED) + random_number;
-	}
-
-	static __forceinline T deobfuscate_with_key(T& data, int key)
+	static __forceinline void obfuscate_with_key(T& data, const unsigned int key)
 	{
 		hash<int> hasher;
 		size_t hash_value = hasher(key);
 		mt19937 rng(hash_value);
 
-		uniform_int_distribution<int> distribution(1, INT_MAX);
-		int random_number = distribution(rng);
+		uniform_int_distribution<T> distribution(1, numeric_limits<T>::max());
+		T random_number = distribution(rng);
 
-		return (data - random_number) ^ OBFUSCATE_SEED;
+		constexpr int bit_width = sizeof(T) * 8;
+		T ROT_KEY = (OBFUSCATE_SEED >> 3) ^ random_number;
+
+		data = ROTL(data, 3, bit_width) ^ OBFUSCATE_SEED;
+		data = (data + CONST_OPERATION_SEED) ^ ROT_KEY;
+	}
+
+	static __forceinline T deobfuscate_with_key(const T data, const unsigned int key)
+	{
+		hash<int> hasher;
+		size_t hash_value = hasher(key);
+		mt19937 rng(hash_value);
+
+		uniform_int_distribution<T> distribution(1, numeric_limits<T>::max());
+		T random_number = distribution(rng);
+
+		constexpr int bit_width = sizeof(T) * 8;
+		T ROT_KEY = (OBFUSCATE_SEED >> 3) ^ random_number;
+
+		T deobfs_data = (data ^ ROT_KEY) - CONST_OPERATION_SEED;
+		deobfs_data = ROTR(deobfs_data ^ OBFUSCATE_SEED, 3, bit_width);
+
+		return deobfs_data;
 	}
 };
 
@@ -157,13 +179,13 @@ public:
 
 int main(void)
 {
-	int OriginalValue = 5;
-	int key = 12345;
+	//test integer obfuscations
+	unsigned int OriginalValue = 5;
+	const unsigned int key = 12345;
 
-	//this example presents two different obfuscation tactics: regular XOR + static operation, and key-based. more will be added over time
-	ProtectedData<int>* obfuscatedClass = new ProtectedData<int>(OriginalValue);
+	ProtectedData<unsigned int>* obfuscatedClass = new ProtectedData<unsigned int>(OriginalValue);
 	
-	int value = obfuscatedClass->GetData(); //returns original value of 5, now we can try adding a randomized key
+	unsigned int value = obfuscatedClass->GetData(); //returns original value of 5, now we can try adding a randomized key
 	
 	cout << "Original value to obfuscate: " << value << endl;
 
@@ -177,6 +199,7 @@ int main(void)
 
 	cout << "GetData with key " << key << " -> Value = " << correct_value_with_key << endl;
 
+	//test string obfuscations
 	string str_to_obfs = "hello world";
 
 	Obfuscator<string>::obfuscate(str_to_obfs);
