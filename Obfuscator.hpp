@@ -78,7 +78,6 @@ public:
 	static const uint8_t obfs_seed = 0xFE; //XOR key
 	static const uint8_t obfs_additive = 0x53; //extra key which is added or subtracted, to make XOR brute forcing unlikely (since we alternate + or - on each index)
 
-	//this is a 'safer' method which makes sure 00's don't show up early in the string and terminate it wrongly
 	static __forceinline void obfuscate(string& data)
 	{
 		for (size_t i = 0; i < data.size(); i++)
