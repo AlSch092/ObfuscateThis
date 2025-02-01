@@ -1,3 +1,4 @@
+//By AlSch092 @ github
 #pragma once
 #define OBFUSCATE_SEED 174440041
 #define CONST_OPERATION_SEED 76543
