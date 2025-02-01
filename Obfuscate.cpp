@@ -187,13 +187,13 @@ int main(void)
 
 	cout << "Deobfuscated string: " << deobfs_str << endl;
 
-	string str_to_obfs_with_key = "a string large enough to show that no strange edge cases will come up, in particular we want to see if any 0x00 comes up which might falsely terminate the string at an earlier time.";
+	string str_to_obfs_with_key = "a string large enough to show that no strange edge cases will come up, a quick brown fox jumps over !@#$%^&*() the 1234567890 gate";
 
-	Obfuscator<string>::obfuscate_with_key(str_to_obfs_with_key, 0x61, 0);
+	Obfuscator<string>::obfuscate_with_key(str_to_obfs_with_key, 0x12, 0x34);
 
 	cout << "Obfuscated string (using keys 0x12, 0x34): " << str_to_obfs_with_key << endl;
 
-	string deobfs_str_with_key = Obfuscator<string>::deobfuscate_with_key(str_to_obfs_with_key, 0x61, 0);
+	string deobfs_str_with_key = Obfuscator<string>::deobfuscate_with_key(str_to_obfs_with_key, 0x12, 0x34);
 
 	cout << "Deobfuscated string (using keys 0x12, 0x34): " << deobfs_str_with_key << endl;
 
