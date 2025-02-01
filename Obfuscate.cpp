@@ -30,7 +30,7 @@ public:
 		constexpr int bit_width = sizeof(T) * 8;
 		constexpr T ROT_KEY = (OBFUSCATE_SEED >> 3) ^ 0xb5;
 
-		T deobfs_data = (data ^ ROT_KEY) - CONST_OPERATION_SEED;    
+		T deobfs_data = (data ^ ROT_KEY) - CONST_OPERATION_SEED;
 		deobfs_data = ROTR(deobfs_data ^ OBFUSCATE_SEED, 3, bit_width);
 		return deobfs_data;
 	}
@@ -76,7 +76,7 @@ class Obfuscator<string> //template specialization for 'string' type since it re
 public:
 
 	static const uint8_t obfs_seed = 0xFE; //XOR key
-	static const uint8_t obfs_additive = 0x53; //extra key which is added or subtracted, to make XOR brute forcing unlikely
+	static const uint8_t obfs_additive = 0x53; //extra key which is added or subtracted, to make XOR brute forcing unlikely (since we alternate + or - on each index)
 
 	//this is a 'safer' method which makes sure 00's don't show up early in the string and terminate it wrongly
 	static __forceinline void obfuscate(string& data)
@@ -85,32 +85,32 @@ public:
 		{
 			uint8_t transformed = 0;
 
-			if(i % 2 == 0)  //alternate + or - based on even/odd index to stop simple XOR brute forcers
+			if (i % 2 == 0)  //alternate + or - based on even/odd index to stop simple XOR brute forcers
 				transformed = (data[i] ^ Obfuscator<string>::obfs_seed) + Obfuscator<string>::obfs_additive;
 			else
 				transformed = (data[i] ^ Obfuscator<string>::obfs_seed) - Obfuscator<string>::obfs_additive;
 
-			data[i] = transformed;		
+			data[i] = transformed;
 		}
 	}
 
-	static __forceinline  string deobfuscate(const string& data)
+	static __forceinline string deobfuscate(const string data)
 	{
 		string deobfs_str;
 
 		for (size_t i = 0; i < data.size(); i++)
 		{
-			if(i % 2 == 0) //alternate + or - based on even/odd index to stop simple XOR brute forcers
-				deobfs_str += (data[i] - Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed; 
+			if (i % 2 == 0) //alternate + or - based on even/odd index to stop simple XOR brute forcers
+				deobfs_str += (data[i] - Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed;
 			else
 				deobfs_str += (data[i] + Obfuscator<string>::obfs_additive) ^ Obfuscator<string>::obfs_seed;
-			
+
 		}
 
 		return deobfs_str;
 	}
 
-	static __forceinline void obfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
+	static __forceinline void obfuscate_with_key(string& data, const uint8_t key, const uint8_t key_addition)
 	{
 		for (size_t i = 0; i < data.size(); i++)
 		{
@@ -125,7 +125,7 @@ public:
 		}
 	}
 
-	static __forceinline string deobfuscate_with_key(string& data, uint8_t key, uint8_t key_addition)
+	static __forceinline string deobfuscate_with_key(string data, const uint8_t key, const uint8_t key_addition)
 	{
 		string deobfs_str;
 
@@ -134,7 +134,7 @@ public:
 			if (i % 2 == 0) //alternate + or - based on even/odd index to stop simple XOR brute forcers
 				deobfs_str += (data[i] - key_addition) ^ key;
 			else
-				deobfs_str += (data[i] + key_addition) ^ key;		
+				deobfs_str += (data[i] + key_addition) ^ key;
 		}
 
 		return deobfs_str;
@@ -148,31 +148,31 @@ private:
 	T someData; //data member to protect in memory
 
 public:
-	
-	ProtectedData(T val)
+
+	ProtectedData(const T val)
 	{
 		SetData(val);
 	}
 
 	__forceinline T GetData()
-	{ 
+	{
 		return Obfuscator<T>::deobfuscate(someData);
 	}
-	
-	__forceinline void SetData(T value)
-	{ 
-		this->someData = value;  
+
+	__forceinline void SetData(const T value)
+	{
+		this->someData = value;
 		Obfuscator<T>::obfuscate(this->someData);
 	}
 
-	__forceinline T GetData(int key)
+	__forceinline T GetData(const unsigned int key)
 	{
 		return Obfuscator<T>::deobfuscate_with_key(someData, key);
 	}
 
-	__forceinline void SetData(T value, int key)
+	__forceinline void SetData(const T value, const unsigned int key)
 	{
-		this->someData = value;  
+		this->someData = value;
 		Obfuscator<T>::obfuscate_with_key(this->someData, key);
 	}
 };
@@ -184,15 +184,15 @@ int main(void)
 	const unsigned int key = 12345;
 
 	ProtectedData<unsigned int>* obfuscatedClass = new ProtectedData<unsigned int>(OriginalValue);
-	
+
 	unsigned int value = obfuscatedClass->GetData(); //returns original value of 5, now we can try adding a randomized key
-	
+
 	cout << "Original value to obfuscate: " << value << endl;
 
 	obfuscatedClass->SetData(OriginalValue, key); //key-based approach - a deterministic value is generated based on a key and used in the obfuscation process
-	
+
 	int wrong_value = obfuscatedClass->GetData(2222); //wrong key (2222) gets a wrong value back
-	
+
 	cout << "GetData with key 2222 (wrong key) -> Value = " << wrong_value << endl;
 
 	int correct_value_with_key = obfuscatedClass->GetData(key); //get data back with correct key
