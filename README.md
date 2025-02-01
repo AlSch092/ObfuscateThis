@@ -7,4 +7,7 @@ A standalone class for runtime obfuscation written in C++ which supports all bas
 ## Memory Implications  
 All routines are set as `__forceinline` such that a single location in memory cannot be hooked to reveal secrets. During deobfuscation, the obfuscated value is not revealed in memory, as only a deobfuscated copy is returned from the function.
 
+## License
+There is no license associated with this code, you are free to use it as you wish!
+
 Thank you for reading and taking an interest, happy coding.
